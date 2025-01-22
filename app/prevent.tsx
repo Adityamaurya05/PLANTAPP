@@ -35,6 +35,15 @@ const PlantDiseases = () => {
           <Menu.Item onPress={() => handleSelect('Blights')} title="Blights" />
           <Menu.Item onPress={() => handleSelect('Cankers')} title="Cankers" />
           <Menu.Item onPress={() => handleSelect('Wilts')} title="Wilts" />
+          <Menu.Item onPress={() => handleSelect('Root Rot')} title="Root Rot" />
+          <Menu.Item onPress={() => handleSelect('Damping-Off')} title="Damping-Off" />
+          <Menu.Item onPress={() => handleSelect('Mosaic Viruses')} title="Mosaic Viruses" />
+          <Menu.Item onPress={() => handleSelect('Bacterial Blights')} title="Bacterial Blights" />
+          <Menu.Item onPress={() => handleSelect('Fire Blight')} title="Fire Blight" />
+          <Menu.Item onPress={() => handleSelect('Panama Disease')} title="Panama Disease" />
+          <Menu.Item onPress={() => handleSelect('Citrus Greening')} title="Citrus Greening" />
+          <Menu.Item onPress={() => handleSelect('Dutch Elm Disease')} title="Dutch Elm Disease" />
+          <Menu.Item onPress={() => handleSelect('Chestnut Blight')} title="Chestnut Blight" />
         </Menu>
 
         {/* Display Content Based on Selected Disease */}
@@ -82,6 +91,18 @@ const PestDiseases = () => {
           <Menu.Item onPress={() => handleSelect('Caterpillars')} title="Caterpillars" />
           <Menu.Item onPress={() => handleSelect('Thrips')} title="Thrips" />
           <Menu.Item onPress={() => handleSelect('Mealybugs')} title="Mealybugs" />
+          <Menu.Item onPress={() => handleSelect('Thirps')} title="Thirps" />
+          <Menu.Item onPress={() => handleSelect('Wireworms')} title="Wireworms" />
+          <Menu.Item onPress={() => handleSelect('Whitefly')} title="Whitefly" />
+          <Menu.Item onPress={() => handleSelect('Sawfly')} title="Sawfly" />
+          <Menu.Item onPress={() => handleSelect('Grasshopper')} title="Grasshopper" />
+          <Menu.Item onPress={() => handleSelect('Mites')} title="Mites" />
+          <Menu.Item onPress={() => handleSelect('Cutworms')} title="Cutworms" />
+          <Menu.Item onPress={() => handleSelect('Aphides')} title="Aphides" />
+          <Menu.Item onPress={() => handleSelect('Caterpillar')} title="Caterpillar" />
+          <Menu.Item onPress={() => handleSelect('Flea Beetle')} title="Flea Beetle" />
+          <Menu.Item onPress={() => handleSelect('Army Worms')} title="Army Worms" />
+          <Menu.Item onPress={() => handleSelect('Snails')} title="Snails" />
         </Menu>
 
         {/* Display Content Based on Selected Pest */}
@@ -129,6 +150,15 @@ const PreventionTips = () => {
           <Menu.Item onPress={() => handleSelect('Physical Barriers')} title="Physical Barriers" />
           <Menu.Item onPress={() => handleSelect('Biological Control')} title="Biological Control" />
           <Menu.Item onPress={() => handleSelect('Chemical Control')} title="Chemical Control" />
+          <Menu.Item onPress={() => handleSelect('Monitoring and Early Detection')} title="Monitoring and Early Detection" />
+          <Menu.Item onPress={() => handleSelect('Plant Resistance')} title="Plant Resistance" />
+          <Menu.Item onPress={() => handleSelect('Sanitation')} title="Sanitation" />
+          <Menu.Item onPress={() => handleSelect('Quarantine')} title="Quarantine" />
+          <Menu.Item onPress={() => handleSelect('Companion Planting')} title="Companion Planting" />
+          <Menu.Item onPress={() => handleSelect('Diversify Your Garden')} title="Diversify Your Garden" />
+          <Menu.Item onPress={() => handleSelect('Water Wisely')} title="Water Wisely" />
+          <Menu.Item onPress={() => handleSelect('Fertilize Properly')} title="Fertilize Properly" />
+          <Menu.Item onPress={() => handleSelect('Stay Informed')} title="Stay Informed" />
         </Menu>
 
         {/* Display Content Based on Selected Tip */}
