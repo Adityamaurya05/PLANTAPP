@@ -4,7 +4,13 @@ export default function RootLayout() {
   return (
     <Stack>
       <Stack.Screen
-        name="index"
+        name="index" // This is the initial route (landing page)
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="home" // Home page with buttons
         options={{
           headerShown: false,
         }}
@@ -12,19 +18,19 @@ export default function RootLayout() {
       <Stack.Screen
         name="prevent"
         options={{
-          headerShown: false
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="pest"
         options={{
-          headerShown: false
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="plant"
         options={{
-          headerShown: false
+          headerShown: false,
         }}
       />
     </Stack>

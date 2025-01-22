@@ -198,5 +198,3 @@ const styles = StyleSheet.create({
 });
 
 export default Prevent;
-
-// COMMITED

@@ -1,50 +1,49 @@
-import { Button, StyleSheet, View, Text } from "react-native";
+import { Button, StyleSheet, View, Text, ImageBackground } from "react-native";
 import { useRouter } from "expo-router";
-import {vw} from "react-native-expo-viewport-units";
+import { vw } from "react-native-expo-viewport-units";
 
-export default function Index() {
+export default function Landing() {
   const router = useRouter();
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Plant and Pest Diseases</Text>
-
-      <View style={styles.buttonContainer}>
+    <ImageBackground
+      source={require('../assets/images/Homescreen.png')} // Replace with your image path
+      style={styles.backgroundImage}
+    >
+      <View style={styles.container}>
+        <Text style={styles.title}>Plant and Pest Diseases Detections & Prevention Tips</Text>
         <View style={styles.buttonWrapper}>
-          <Button title="Plant" onPress={() => router.push("/plant")} color="#39785c" />
-        </View>
-        <View style={styles.buttonWrapper}>
-          <Button title="Pest" onPress={() => router.push("/pest")} color="#39785c" />
-        </View>
-        <View style={styles.buttonWrapper}>
-          <Button title="Prevention" onPress={() => router.push("/prevent")} color="#39785c" />
+          <Button title="Click to Start" onPress={() => router.push("/home")} color="#39785c" />
         </View>
       </View>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    resizeMode: 'cover', // Ensures the image covers the entire screen
+  },
   container: {
     flex: 1,
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "#FFA500", // Orange background
-  },
-  buttonContainer: {
-    width: "80%", // Adjust the width as needed
-    marginBottom: vw(50),
-  },
-  buttonWrapper: {
-    borderRadius: 25, // Rounded corners
-    overflow: "hidden", // Ensures the button respects the borderRadius
-    marginVertical: 10, // Space between buttons
-    backgroundColor: "#FFCC99", // Light orange background for buttons
+    justifyContent: "center", // Center content vertically
+    alignItems: "center", // Center content horizontally
+    backgroundColor: "rgba(255, 165, 0, 0.0)", // Semi-transparent orange overlay
   },
   title: {
-    fontSize: 24, // Adjust the font size as needed
+    fontSize: 30, // Adjust the font size as needed
     fontWeight: "bold", // Bold text
     color: "#942B2BFF", // Dark red color to match the buttons
     textAlign: "center", // Center the text horizontally
+    marginBottom: vw(20), // Reduced space below the title to move the button up
+    paddingHorizontal: vw(10), // Add padding to prevent text overflow
+  },
+  buttonWrapper: {
+    borderRadius: 30, // Rounded corners
+    overflow: "hidden", // Ensures the button respects the borderRadius
+    paddingHorizontal: vw(30), // Increase horizontal padding to make the button wider
+    paddingVertical: vw(15), // Increase vertical padding to make the button taller
+    marginTop: vw(-20), // Move the button slightly upward
   },
 });
