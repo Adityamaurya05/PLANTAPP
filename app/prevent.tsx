@@ -182,6 +182,7 @@ const Prevent = () => {
   return (
     <Tab.Navigator
       screenOptions={{
+        headerShown: false, // Hide the header for all screens
         tabBarActiveTintColor: '#F2F0F0FF', // Active tab text color
         tabBarInactiveTintColor: '#555', // Inactive tab text color
         tabBarStyle: { backgroundColor: '#7eaca2' }, // Tab bar background color

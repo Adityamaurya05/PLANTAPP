@@ -1,21 +1,24 @@
-import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
 import React from 'react';
 
-const plant = () => {
+const Plant = () => {
   return (
     <ImageBackground
       source={require('../assets/images/Uploadscreen.png')}
       style={styles.backgroundImage}
     >
-    <View style={styles.container}>
-            {/* Custom Button */}
-            <TouchableOpacity 
-              style={styles.customButton} 
-              onPress={() => alert('Button pressed!')}
-            >
-              <Text style={styles.customButtonText}>Upload</Text>
-            </TouchableOpacity>
-          </View>
+      <View style={styles.container}>
+        {/* Text for Plant Detection */}
+        <Text style={styles.title}>Plant Detection</Text>
+
+        {/* Custom Button */}
+        <TouchableOpacity
+          style={styles.customButton}
+          onPress={() => alert('Button pressed!')}
+        >
+          <Text style={styles.customButtonText}>Upload</Text>
+        </TouchableOpacity>
+      </View>
     </ImageBackground>
   );
 };
@@ -29,6 +32,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  title: {
+    fontSize: 24, // Adjust the font size as needed
+    fontWeight: 'bold', // Bold text
+    color: '#942B2BFF', // Dark red color to match the buttons
+    textAlign: 'center', // Center the text horizontally
+    marginBottom: 20, // Space between the text and the button
   },
   customButton: {
     backgroundColor: '#39785c', // Green color from your description
@@ -50,4 +60,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default plant
+export default Plant;
