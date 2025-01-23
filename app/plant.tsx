@@ -4,7 +4,7 @@ import React from 'react';
 const Plant = () => {
   return (
     <ImageBackground
-      source={require('../assets/images/Uploadscreen.png')}
+      source={require('../assets/images/plant1.jpg')}
       style={styles.backgroundImage}
     >
       <View style={styles.container}>
@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24, // Adjust the font size as needed
     fontWeight: 'bold', // Bold text
-    color: '#942B2BFF', // Dark red color to match the buttons
+    color: '#FAF3F3FF', // Dark red color to match the buttons
     textAlign: 'center', // Center the text horizontally
     marginBottom: 20, // Space between the text and the button
   },

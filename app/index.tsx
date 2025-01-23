@@ -7,7 +7,7 @@ export default function Landing() {
 
   return (
     <ImageBackground
-      source={require('../assets/images/Homescreen.png')} // Replace with your image path
+      source={require('../assets/images/plantscreen.jpg')} // Replace with your image path
       style={styles.backgroundImage}
     >
       <View style={styles.container}>

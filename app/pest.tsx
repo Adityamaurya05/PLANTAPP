@@ -4,7 +4,7 @@ import React from 'react';
 const Pest = () => {
   return (
     <ImageBackground
-      source={require('../assets/images/Uploadscreen.png')}
+      source={require('../assets/images/pestscreen.png')}
       style={styles.backgroundImage}
     >
       <View style={styles.container}>
