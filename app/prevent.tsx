@@ -1,17 +1,78 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Menu, Provider } from 'react-native-paper';
+import { Buffer } from 'buffer';
 
-// Define the content for each tab
+const WS_URL = 'ws://192.168.1.10:2525/prevent-data';
+
 const PlantDiseases = () => {
-  const [visible, setVisible] = useState(false); // State to manage dropdown visibility
-  const [selectedDisease, setSelectedDisease] = useState('Select a Plant Disease'); // State to store selected disease
+  type Disease = {
+    "Disease Name": string;
+    Description: string;
+    "Affected Plants": string;
+    Symptoms: string;
+    Prevention: string;
+    percentage: string;
+    Fact: string;
+    Images: string;
+    image_hex?: string;
+  };
 
-  // Function to handle menu item selection
+  const [visible, setVisible] = useState(false);
+  const [selectedDisease, setSelectedDisease] = useState('Select a Plant Disease');
+  const [diseaseInfo, setDiseaseInfo] = useState<Disease | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+
+  useEffect(() => {
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = event.data;
+      try {
+        const parsedData = JSON.parse(data);
+
+        if (parsedData.image_hex) {
+          const imageBuffer = Buffer.from(parsedData.image_hex, 'hex');
+          const base64Image = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+          parsedData.image_hex = base64Image;
+        }
+
+        setDiseaseInfo(parsedData);
+      } catch (error) {
+        setDiseaseInfo(data);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    setWs(socket);
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
   const handleSelect = (disease: string) => {
     setSelectedDisease(disease);
     setVisible(false);
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const message = `PLANT:${disease}`;
+      ws.send(message);
+    }
   };
 
   return (
@@ -19,7 +80,6 @@ const PlantDiseases = () => {
       <View style={styles.scene}>
         <Text style={styles.text}>Plant Diseases</Text>
 
-        {/* Dropdown Menu */}
         <Menu
           visible={visible}
           onDismiss={() => setVisible(false)}
@@ -46,14 +106,30 @@ const PlantDiseases = () => {
           <Menu.Item onPress={() => handleSelect('Chestnut Blight')} title="Chestnut Blight" />
         </Menu>
 
-        {/* Display Content Based on Selected Disease */}
-        {selectedDisease !== 'Select a Plant Disease' && (
-          <View style={styles.content}>
+        {selectedDisease !== 'Select a Plant Disease' && diseaseInfo && (
+          <ScrollView style={styles.content}>
             <Text style={styles.subText}>Information for {selectedDisease}:</Text>
-            <Text>- This is a common plant disease.</Text>
-            <Text>- Use fungicides for treatment.</Text>
-            <Text>- Maintain proper plant hygiene.</Text>
-          </View>
+
+            {typeof diseaseInfo === 'string' ? (
+              <Text>{diseaseInfo}</Text>
+            ) : (
+              <>
+                <Text>{`Description: ${diseaseInfo.Description}`}</Text>
+                <Text>{`Affected Plants: ${diseaseInfo['Affected Plants']}`}</Text>
+                <Text>{`Symptoms: ${diseaseInfo.Symptoms}`}</Text>
+                <Text>{`Prevention: ${diseaseInfo.Prevention}`}</Text>
+                <Text>{`Percentage: ${diseaseInfo.percentage}`}</Text>
+                <Text>{`Fact: ${diseaseInfo.Fact}`}</Text>
+                {diseaseInfo.image_hex && (
+                  <Image
+                    source={{ uri: diseaseInfo.image_hex }}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                )}
+              </>
+            )}
+          </ScrollView>
         )}
       </View>
     </Provider>
@@ -225,6 +301,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
+  },
+  image: {
+    width: 200,
+    height: 200,
+    marginTop: 10,
   },
 });
 
