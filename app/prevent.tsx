@@ -271,13 +271,61 @@ const PestDiseases = () => {
 };
 
 const PreventionTips = () => {
-  const [visible, setVisible] = useState(false); // State to manage dropdown visibility
-  const [selectedTip, setSelectedTip] = useState('Select a Prevention Tip'); // State to store selected tip
+  type Tips = {
+    "Prevention Name": string;
+    About: string;
+    "Key points": string;
+  };
 
-  // Function to handle menu item selection
+
+  const [visible, setVisible] = useState(false);
+  const [selectedTip, setSelectedTip] = useState('Select a Prevention Tip');
+  const [tipInfo, setTipInfo] = useState<Tips | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+
+  useEffect(() => {
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = event.data;
+      try {
+        const parsedData = JSON.parse(data);
+
+        setTipInfo(parsedData);
+      } catch (error) {
+        setTipInfo(data);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    setWs(socket);
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
   const handleSelect = (tip: string) => {
     setSelectedTip(tip);
     setVisible(false);
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const message = `PREVENTION:${tip}`;
+      ws.send(message);
+    }
   };
 
   return (
@@ -285,7 +333,6 @@ const PreventionTips = () => {
       <View style={styles.scene}>
         <Text style={styles.text}>Prevention Tips</Text>
 
-        {/* Dropdown Menu */}
         <Menu
           visible={visible}
           onDismiss={() => setVisible(false)}
@@ -312,32 +359,37 @@ const PreventionTips = () => {
           <Menu.Item onPress={() => handleSelect('Stay Informed')} title="Stay Informed" />
         </Menu>
 
-        {/* Display Content Based on Selected Tip */}
-        {selectedTip !== 'Select a Prevention Tip' && (
-          <View style={styles.content}>
+        {selectedTip !== 'Select a Prevention Tip' && tipInfo && (
+          <ScrollView style={styles.content}>
             <Text style={styles.subText}>Prevention Tips for {selectedTip}:</Text>
-            <Text>- Use organic pesticides.</Text>
-            <Text>- Rotate crops regularly.</Text>
-            <Text>- Maintain proper soil health.</Text>
-          </View>
+
+            {typeof tipInfo === 'string' ? (
+              <Text>{tipInfo}</Text>
+            ) : (
+              <>
+                <Text>{`Name: ${tipInfo["Prevention Name"]}`}</Text>
+                <Text>{`About: ${tipInfo.About}`}</Text>
+                <Text>{`Key Points: ${tipInfo["Key points"]}`}</Text>
+              </>
+            )}
+          </ScrollView>
         )}
       </View>
     </Provider>
   );
 };
 
-// Create the bottom tab navigator
 const Tab = createBottomTabNavigator();
 
 const Prevent = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false, // Hide the header for all screens
-        tabBarActiveTintColor: '#F2F0F0FF', // Active tab text color
-        tabBarInactiveTintColor: '#555', // Inactive tab text color
-        tabBarStyle: { backgroundColor: '#7eaca2' }, // Tab bar background color
-        tabBarLabelStyle: { fontSize: 15 }, // Font size for tab labels
+        headerShown: false,
+        tabBarActiveTintColor: '#F2F0F0FF',
+        tabBarInactiveTintColor: '#555',
+        tabBarStyle: { backgroundColor: '#7eaca2' },
+        tabBarLabelStyle: { fontSize: 15 },
       }}
     >
       <Tab.Screen name="Plant Diseases" component={PlantDiseases} />
@@ -347,12 +399,11 @@ const Prevent = () => {
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
   scene: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#e9ffd8', // Background color for the content
+    backgroundColor: '#e9ffd8',
   },
   text: {
     fontSize: 18,
