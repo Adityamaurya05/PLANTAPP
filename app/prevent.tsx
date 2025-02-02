@@ -1,17 +1,78 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, ScrollView, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Menu, Provider } from 'react-native-paper';
+import { Buffer } from 'buffer';
 
-// Define the content for each tab
+const WS_URL = 'ws://192.168.1.4:2525/prevent-data';
+
 const PlantDiseases = () => {
-  const [visible, setVisible] = useState(false); // State to manage dropdown visibility
-  const [selectedDisease, setSelectedDisease] = useState('Select a Plant Disease'); // State to store selected disease
+  type Disease = {
+    "Disease Name": string;
+    Description: string;
+    "Affected Plants": string;
+    Symptoms: string;
+    Prevention: string;
+    percentage: string;
+    Fact: string;
+    Images: string;
+    image_hex?: string;
+  };
 
-  // Function to handle menu item selection
+  const [visible, setVisible] = useState(false);
+  const [selectedDisease, setSelectedDisease] = useState('Select a Plant Disease');
+  const [diseaseInfo, setDiseaseInfo] = useState<Disease | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+
+  useEffect(() => {
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = event.data;
+      try {
+        const parsedData = JSON.parse(data);
+
+        if (parsedData.image_hex) {
+          const imageBuffer = Buffer.from(parsedData.image_hex, 'hex');
+          const base64Image = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+          parsedData.image_hex = base64Image;
+        }
+
+        setDiseaseInfo(parsedData);
+      } catch (error) {
+        setDiseaseInfo(data);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    setWs(socket);
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
   const handleSelect = (disease: string) => {
     setSelectedDisease(disease);
     setVisible(false);
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const message = `PLANT:${disease}`;
+      ws.send(message);
+    }
   };
 
   return (
@@ -19,7 +80,6 @@ const PlantDiseases = () => {
       <View style={styles.scene}>
         <Text style={styles.text}>Plant Diseases</Text>
 
-        {/* Dropdown Menu */}
         <Menu
           visible={visible}
           onDismiss={() => setVisible(false)}
@@ -46,14 +106,30 @@ const PlantDiseases = () => {
           <Menu.Item onPress={() => handleSelect('Chestnut Blight')} title="Chestnut Blight" />
         </Menu>
 
-        {/* Display Content Based on Selected Disease */}
-        {selectedDisease !== 'Select a Plant Disease' && (
-          <View style={styles.content}>
+        {selectedDisease !== 'Select a Plant Disease' && diseaseInfo && (
+          <ScrollView style={styles.content}>
             <Text style={styles.subText}>Information for {selectedDisease}:</Text>
-            <Text>- This is a common plant disease.</Text>
-            <Text>- Use fungicides for treatment.</Text>
-            <Text>- Maintain proper plant hygiene.</Text>
-          </View>
+
+            {typeof diseaseInfo === 'string' ? (
+              <Text>{diseaseInfo}</Text>
+            ) : (
+              <>
+                <Text>{`Description: ${diseaseInfo.Description}`}</Text>
+                <Text>{`Affected Plants: ${diseaseInfo['Affected Plants']}`}</Text>
+                <Text>{`Symptoms: ${diseaseInfo.Symptoms}`}</Text>
+                <Text>{`Prevention: ${diseaseInfo.Prevention}`}</Text>
+                <Text>{`Percentage: ${diseaseInfo.percentage}`}</Text>
+                <Text>{`Fact: ${diseaseInfo.Fact}`}</Text>
+                {diseaseInfo.image_hex && (
+                  <Image
+                    source={{ uri: diseaseInfo.image_hex }}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                )}
+              </>
+            )}
+          </ScrollView>
         )}
       </View>
     </Provider>
@@ -61,13 +137,77 @@ const PlantDiseases = () => {
 };
 
 const PestDiseases = () => {
-  const [visible, setVisible] = useState(false); // State to manage dropdown visibility
-  const [selectedPest, setSelectedPest] = useState('Select a Pest'); // State to store selected pest
+  type Pest = {
+    "Pest Name": string;
+    "What they are": string;
+    "Common names": string;
+    Regions: string;
+    "Favorite crops": string;
+    Prevention: string;
+    Locating: string;
+    "Prevention points": string;
+    Fact: string;
+    Image: string;
+    Caption: string;
+    image_hex?: string;
+  };
 
-  // Function to handle menu item selection
-  const handleSelect = (pest: string) => {
-    setSelectedPest(pest);
+
+  const [visible, setVisible] = useState(false);
+  const [selectedPest, setSelectedPest] = useState('Select a Pest');
+  const [pestInfo, setPestInfo] = useState<Pest | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+
+
+  useEffect(() => {
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = event.data;
+      try {
+        const parsedData = JSON.parse(data);
+
+        if (parsedData.image_hex) {
+          const imageBuffer = Buffer.from(parsedData.image_hex, 'hex');
+          const base64Image = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+          parsedData.image_hex = base64Image;
+        }
+
+        setPestInfo(parsedData);
+      } catch (error) {
+        setPestInfo(data);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    setWs(socket);
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
+  const handleSelect = (disease: string) => {
+    setSelectedPest(disease);
     setVisible(false);
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const message = `PEST:${disease}`;
+      ws.send(message);
+    }
   };
 
   return (
@@ -75,7 +215,6 @@ const PestDiseases = () => {
       <View style={styles.scene}>
         <Text style={styles.text}>Pest Diseases</Text>
 
-        {/* Dropdown Menu */}
         <Menu
           visible={visible}
           onDismiss={() => setVisible(false)}
@@ -85,34 +224,46 @@ const PestDiseases = () => {
             </Text>
           }
         >
-          <Menu.Item onPress={() => handleSelect('Aphids')} title="Aphids" />
-          <Menu.Item onPress={() => handleSelect('Whiteflies')} title="Whiteflies" />
-          <Menu.Item onPress={() => handleSelect('Spider Mites')} title="Spider Mites" />
-          <Menu.Item onPress={() => handleSelect('Caterpillars')} title="Caterpillars" />
           <Menu.Item onPress={() => handleSelect('Thrips')} title="Thrips" />
-          <Menu.Item onPress={() => handleSelect('Mealybugs')} title="Mealybugs" />
-          <Menu.Item onPress={() => handleSelect('Thirps')} title="Thirps" />
           <Menu.Item onPress={() => handleSelect('Wireworms')} title="Wireworms" />
           <Menu.Item onPress={() => handleSelect('Whitefly')} title="Whitefly" />
           <Menu.Item onPress={() => handleSelect('Sawfly')} title="Sawfly" />
           <Menu.Item onPress={() => handleSelect('Grasshopper')} title="Grasshopper" />
           <Menu.Item onPress={() => handleSelect('Mites')} title="Mites" />
           <Menu.Item onPress={() => handleSelect('Cutworms')} title="Cutworms" />
-          <Menu.Item onPress={() => handleSelect('Aphides')} title="Aphides" />
+          <Menu.Item onPress={() => handleSelect('Aphids')} title="Aphids" />
           <Menu.Item onPress={() => handleSelect('Caterpillar')} title="Caterpillar" />
           <Menu.Item onPress={() => handleSelect('Flea Beetle')} title="Flea Beetle" />
           <Menu.Item onPress={() => handleSelect('Army Worms')} title="Army Worms" />
           <Menu.Item onPress={() => handleSelect('Snails')} title="Snails" />
         </Menu>
 
-        {/* Display Content Based on Selected Pest */}
-        {selectedPest !== 'Select a Pest' && (
-          <View style={styles.content}>
+        {selectedPest !== 'Select a Pest' && pestInfo && (
+          <ScrollView style={styles.content}>
             <Text style={styles.subText}>Information for {selectedPest}:</Text>
-            <Text>- This is a common pest.</Text>
-            <Text>- Use insecticides for treatment.</Text>
-            <Text>- Introduce natural predators.</Text>
-          </View>
+
+            {typeof pestInfo === 'string' ? (
+              <Text>{pestInfo}</Text>
+            ) : (
+              <>
+                <Text>{`What they are: ${pestInfo['What they are']}`}</Text>
+                <Text>{`Common Names: ${pestInfo['Common names']}`}</Text>
+                <Text>{`Regions: ${pestInfo.Regions}`}</Text>
+                <Text>{`Favorite Crops: ${pestInfo['Favorite crops']}`}</Text>
+                <Text>{`Prevention: ${pestInfo.Prevention}`}</Text>
+                <Text>{`Locating: ${pestInfo.Locating}`}</Text>
+                <Text>{`Prevention Points: ${pestInfo['Prevention points']}`}</Text>
+                <Text>{`Fact: ${pestInfo.Fact}`}</Text>
+                {pestInfo.image_hex && (
+                  <Image
+                    source={{ uri: pestInfo.image_hex }}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                )}
+              </>
+            )}
+          </ScrollView>
         )}
       </View>
     </Provider>
@@ -120,13 +271,61 @@ const PestDiseases = () => {
 };
 
 const PreventionTips = () => {
-  const [visible, setVisible] = useState(false); // State to manage dropdown visibility
-  const [selectedTip, setSelectedTip] = useState('Select a Prevention Tip'); // State to store selected tip
+  type Tips = {
+    "Prevention Name": string;
+    About: string;
+    "Key points": string;
+  };
 
-  // Function to handle menu item selection
+
+  const [visible, setVisible] = useState(false);
+  const [selectedTip, setSelectedTip] = useState('Select a Prevention Tip');
+  const [tipInfo, setTipInfo] = useState<Tips | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+
+  useEffect(() => {
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = event.data;
+      try {
+        const parsedData = JSON.parse(data);
+
+        setTipInfo(parsedData);
+      } catch (error) {
+        setTipInfo(data);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    setWs(socket);
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
   const handleSelect = (tip: string) => {
     setSelectedTip(tip);
     setVisible(false);
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const message = `PREVENTION:${tip}`;
+      ws.send(message);
+    }
   };
 
   return (
@@ -134,7 +333,6 @@ const PreventionTips = () => {
       <View style={styles.scene}>
         <Text style={styles.text}>Prevention Tips</Text>
 
-        {/* Dropdown Menu */}
         <Menu
           visible={visible}
           onDismiss={() => setVisible(false)}
@@ -161,32 +359,37 @@ const PreventionTips = () => {
           <Menu.Item onPress={() => handleSelect('Stay Informed')} title="Stay Informed" />
         </Menu>
 
-        {/* Display Content Based on Selected Tip */}
-        {selectedTip !== 'Select a Prevention Tip' && (
-          <View style={styles.content}>
+        {selectedTip !== 'Select a Prevention Tip' && tipInfo && (
+          <ScrollView style={styles.content}>
             <Text style={styles.subText}>Prevention Tips for {selectedTip}:</Text>
-            <Text>- Use organic pesticides.</Text>
-            <Text>- Rotate crops regularly.</Text>
-            <Text>- Maintain proper soil health.</Text>
-          </View>
+
+            {typeof tipInfo === 'string' ? (
+              <Text>{tipInfo}</Text>
+            ) : (
+              <>
+                <Text>{`Name: ${tipInfo["Prevention Name"]}`}</Text>
+                <Text>{`About: ${tipInfo.About}`}</Text>
+                <Text>{`Key Points: ${tipInfo["Key points"]}`}</Text>
+              </>
+            )}
+          </ScrollView>
         )}
       </View>
     </Provider>
   );
 };
 
-// Create the bottom tab navigator
 const Tab = createBottomTabNavigator();
 
 const Prevent = () => {
   return (
     <Tab.Navigator
       screenOptions={{
-        headerShown: false, // Hide the header for all screens
-        tabBarActiveTintColor: '#F2F0F0FF', // Active tab text color
-        tabBarInactiveTintColor: '#555', // Inactive tab text color
-        tabBarStyle: { backgroundColor: '#7eaca2' }, // Tab bar background color
-        tabBarLabelStyle: { fontSize: 15 }, // Font size for tab labels
+        headerShown: false,
+        tabBarActiveTintColor: '#F2F0F0FF',
+        tabBarInactiveTintColor: '#555',
+        tabBarStyle: { backgroundColor: '#7eaca2' },
+        tabBarLabelStyle: { fontSize: 15 },
       }}
     >
       <Tab.Screen name="Plant Diseases" component={PlantDiseases} />
@@ -196,12 +399,11 @@ const Prevent = () => {
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
   scene: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#e9ffd8', // Background color for the content
+    backgroundColor: '#e9ffd8',
   },
   text: {
     fontSize: 18,
@@ -225,6 +427,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
+  },
+  image: {
+    width: 200,
+    height: 200,
+    marginTop: 10,
   },
 });
 
