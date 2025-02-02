@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Menu, Provider } from 'react-native-paper';
 import { Buffer } from 'buffer';
 
-const WS_URL = 'ws://192.168.1.10:2525/prevent-data';
+const WS_URL = 'ws://192.168.1.4:2525/prevent-data';
 
 const PlantDiseases = () => {
   type Disease = {
@@ -137,13 +137,77 @@ const PlantDiseases = () => {
 };
 
 const PestDiseases = () => {
-  const [visible, setVisible] = useState(false); // State to manage dropdown visibility
-  const [selectedPest, setSelectedPest] = useState('Select a Pest'); // State to store selected pest
+  type Pest = {
+    "Pest Name": string;
+    "What they are": string;
+    "Common names": string;
+    Regions: string;
+    "Favorite crops": string;
+    Prevention: string;
+    Locating: string;
+    "Prevention points": string;
+    Fact: string;
+    Image: string;
+    Caption: string;
+    image_hex?: string;
+  };
 
-  // Function to handle menu item selection
-  const handleSelect = (pest: string) => {
-    setSelectedPest(pest);
+
+  const [visible, setVisible] = useState(false);
+  const [selectedPest, setSelectedPest] = useState('Select a Pest');
+  const [pestInfo, setPestInfo] = useState<Pest | null>(null);
+  const [ws, setWs] = useState<WebSocket | null>(null);
+
+
+  useEffect(() => {
+    const socket = new WebSocket(WS_URL);
+
+    socket.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    socket.onmessage = (event) => {
+      const data = event.data;
+      try {
+        const parsedData = JSON.parse(data);
+
+        if (parsedData.image_hex) {
+          const imageBuffer = Buffer.from(parsedData.image_hex, 'hex');
+          const base64Image = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
+          parsedData.image_hex = base64Image;
+        }
+
+        setPestInfo(parsedData);
+      } catch (error) {
+        setPestInfo(data);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    setWs(socket);
+
+    return () => {
+      if (socket) {
+        socket.close();
+      }
+    };
+  }, []);
+
+  const handleSelect = (disease: string) => {
+    setSelectedPest(disease);
     setVisible(false);
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const message = `PEST:${disease}`;
+      ws.send(message);
+    }
   };
 
   return (
@@ -151,7 +215,6 @@ const PestDiseases = () => {
       <View style={styles.scene}>
         <Text style={styles.text}>Pest Diseases</Text>
 
-        {/* Dropdown Menu */}
         <Menu
           visible={visible}
           onDismiss={() => setVisible(false)}
@@ -161,34 +224,46 @@ const PestDiseases = () => {
             </Text>
           }
         >
-          <Menu.Item onPress={() => handleSelect('Aphids')} title="Aphids" />
-          <Menu.Item onPress={() => handleSelect('Whiteflies')} title="Whiteflies" />
-          <Menu.Item onPress={() => handleSelect('Spider Mites')} title="Spider Mites" />
-          <Menu.Item onPress={() => handleSelect('Caterpillars')} title="Caterpillars" />
           <Menu.Item onPress={() => handleSelect('Thrips')} title="Thrips" />
-          <Menu.Item onPress={() => handleSelect('Mealybugs')} title="Mealybugs" />
-          <Menu.Item onPress={() => handleSelect('Thirps')} title="Thirps" />
           <Menu.Item onPress={() => handleSelect('Wireworms')} title="Wireworms" />
           <Menu.Item onPress={() => handleSelect('Whitefly')} title="Whitefly" />
           <Menu.Item onPress={() => handleSelect('Sawfly')} title="Sawfly" />
           <Menu.Item onPress={() => handleSelect('Grasshopper')} title="Grasshopper" />
           <Menu.Item onPress={() => handleSelect('Mites')} title="Mites" />
           <Menu.Item onPress={() => handleSelect('Cutworms')} title="Cutworms" />
-          <Menu.Item onPress={() => handleSelect('Aphides')} title="Aphides" />
+          <Menu.Item onPress={() => handleSelect('Aphids')} title="Aphids" />
           <Menu.Item onPress={() => handleSelect('Caterpillar')} title="Caterpillar" />
           <Menu.Item onPress={() => handleSelect('Flea Beetle')} title="Flea Beetle" />
           <Menu.Item onPress={() => handleSelect('Army Worms')} title="Army Worms" />
           <Menu.Item onPress={() => handleSelect('Snails')} title="Snails" />
         </Menu>
 
-        {/* Display Content Based on Selected Pest */}
-        {selectedPest !== 'Select a Pest' && (
-          <View style={styles.content}>
+        {selectedPest !== 'Select a Pest' && pestInfo && (
+          <ScrollView style={styles.content}>
             <Text style={styles.subText}>Information for {selectedPest}:</Text>
-            <Text>- This is a common pest.</Text>
-            <Text>- Use insecticides for treatment.</Text>
-            <Text>- Introduce natural predators.</Text>
-          </View>
+
+            {typeof pestInfo === 'string' ? (
+              <Text>{pestInfo}</Text>
+            ) : (
+              <>
+                <Text>{`What they are: ${pestInfo['What they are']}`}</Text>
+                <Text>{`Common Names: ${pestInfo['Common names']}`}</Text>
+                <Text>{`Regions: ${pestInfo.Regions}`}</Text>
+                <Text>{`Favorite Crops: ${pestInfo['Favorite crops']}`}</Text>
+                <Text>{`Prevention: ${pestInfo.Prevention}`}</Text>
+                <Text>{`Locating: ${pestInfo.Locating}`}</Text>
+                <Text>{`Prevention Points: ${pestInfo['Prevention points']}`}</Text>
+                <Text>{`Fact: ${pestInfo.Fact}`}</Text>
+                {pestInfo.image_hex && (
+                  <Image
+                    source={{ uri: pestInfo.image_hex }}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                )}
+              </>
+            )}
+          </ScrollView>
         )}
       </View>
     </Provider>
