@@ -1,7 +1,37 @@
 import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
 import React from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+
 
 const Pest = () => {
+  const { setGalleryImage } = useImageContext();
+  const router = useRouter();
+
+  const pickImage = async () => {
+    // Request permissions for accessing the media library
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      alert('Sorry, we need media library permissions to make this work!');
+      return;
+    }
+
+    // Open the gallery to pick an image or video
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      // Set the selected image or video URI in the context
+      setGalleryImage(result.assets[0].uri);
+      // Navigate to the upload screen or handle the upload logic
+      router.push('/upload');
+    }
+  };
+
   return (
     <ImageBackground
       source={require('../assets/images/pestscreen.png')}
@@ -14,7 +44,7 @@ const Pest = () => {
         {/* Custom Button */}
         <TouchableOpacity
           style={styles.customButton}
-          onPress={() => alert('Button pressed!')}
+          onPress={pickImage}
         >
           <Text style={styles.customButtonText}>Upload</Text>
         </TouchableOpacity>
