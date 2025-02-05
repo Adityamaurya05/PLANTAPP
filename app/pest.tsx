@@ -11,7 +11,7 @@ import React, { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { Video } from 'expo-av';
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
-import { storage } from '../firebaseConfig';
+import { storage } from '../Config';
 
 const Pest = () => {
   const [videoUri, setVideoUri] = useState<string | null>(null);
