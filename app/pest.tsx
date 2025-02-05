@@ -12,13 +12,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video } from 'expo-av';
 import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
 import { storage } from '../Config';
+import * as FileSystem from 'expo-file-system';
 
 const Pest = () => {
   const [videoUri, setVideoUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [serverVideoUri, setServerVideoUri] = useState<string | null>(null);
   const [loadingServerVideo, setLoadingServerVideo] = useState(false);
+  const [localVideoUri, setLocalVideoUri] = useState<string | null>(null);
 
   const pickVideo = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -29,7 +30,7 @@ const Pest = () => {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setVideoUri(result.assets[0].uri);
-      setServerVideoUri(null);
+      setLocalVideoUri(null);
     }
   };
 
@@ -92,11 +93,15 @@ const Pest = () => {
 
         if (serverVideo) {
           const downloadURL = await getDownloadURL(serverVideo);
-          setServerVideoUri(downloadURL);
+
+          const localUri = `${FileSystem.documentDirectory}${serverVideo.name}`;
+          const { uri } = await FileSystem.downloadAsync(downloadURL, localUri);
+
+          setLocalVideoUri(uri);
           setVideoUri(null);
 
           await deleteObject(serverVideo);
-          console.log('SERVER video deleted successfully.');
+          console.log('SERVER video downloaded and deleted successfully.');
 
           setLoadingServerVideo(false);
           return;
@@ -122,24 +127,24 @@ const Pest = () => {
       <View style={styles.container}>
         <Text style={styles.title}>Pest Detection</Text>
 
-        {!videoUri && !serverVideoUri && (
+        {!videoUri && !localVideoUri && (
           <TouchableOpacity style={styles.customButton} onPress={pickVideo}>
             <Text style={styles.customButtonText}>Select Video</Text>
           </TouchableOpacity>
         )}
 
-        {(videoUri || serverVideoUri) && !uploading && !loadingServerVideo && (
+        {(videoUri || localVideoUri) && !uploading && !loadingServerVideo && (
           <>
             <View style={styles.videoContainer}>
               <Video
-                source={{ uri: videoUri || serverVideoUri || "" }}
+                source={{ uri: videoUri || localVideoUri || "" }}
                 shouldPlay
                 style={styles.video}
                 useNativeControls
               />
             </View>
 
-            {!serverVideoUri && (
+            {!localVideoUri && (
               <TouchableOpacity style={styles.customButton} onPress={uploadVideo}>
                 <Text style={styles.customButtonText}>Upload Video</Text>
               </TouchableOpacity>
@@ -151,7 +156,7 @@ const Pest = () => {
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
             <Text style={styles.progressText}>
-              {uploading ? `Uploading: ${uploadProgress.toFixed(2)}%` : 'Checking for SERVER video...'}
+              {uploading ? `Uploading: ${uploadProgress.toFixed(2)}%` : 'Checking for video...'}
             </Text>
           </View>
         )}
@@ -211,7 +216,7 @@ const styles = StyleSheet.create({
   },
   progressText: {
     marginTop: 10,
-    color: 'white',
+    color: 'blue',
     fontSize: 16,
   },
 });
