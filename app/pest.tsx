@@ -156,7 +156,7 @@ const Pest = () => {
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#4CAF50" />
             <Text style={styles.progressText}>
-              {uploading ? `Uploading: ${uploadProgress.toFixed(2)}%` : 'Checking for video...'}
+              {uploading ? `Uploading: ${uploadProgress.toFixed(2)}%` : 'Checking for covideo...'}
             </Text>
           </View>
         )}
