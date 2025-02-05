@@ -1,54 +1,24 @@
-import { View, Text, ImageBackground, StyleSheet, TouchableOpacity } from 'react-native';
-import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  ImageBackground,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import React, { useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { Video } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
+import { ref, uploadBytesResumable, getDownloadURL, listAll, deleteObject } from 'firebase/storage';
+import { storage } from '../firebaseConfig';
 
 const Pest = () => {
   const [videoUri, setVideoUri] = useState<string | null>(null);
-  const [ws, setWs] = useState<WebSocket | null>(null);
-  const [videoVisible, setVideoVisible] = useState(true);
-
-  const initWebSocket = () => {
-    const socket = new WebSocket('ws://192.168.1.4:2525/pest');
-
-    socket.onopen = () => console.log('WebSocket connected');
-    socket.onerror = (error) => console.log('WebSocket error: ', error);
-    socket.onclose = () => console.log('WebSocket closed');
-
-    socket.onmessage = async (event) => {
-      console.log('Received video data type:', typeof event.data);
-
-      const videoUri = FileSystem.documentDirectory + 'annotated_video.mp4';
-
-      try {
-        if (typeof event.data === 'string') {
-          await FileSystem.writeAsStringAsync(videoUri, event.data, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-        } else {
-          const byteArray = new Uint8Array(event.data);
-          await FileSystem.writeAsStringAsync(videoUri, byteArray.toString(), {
-            encoding: FileSystem.EncodingType.UTF8,
-          });
-        }
-
-        const fileInfo = await FileSystem.getInfoAsync(videoUri);
-        if (!fileInfo.exists) {
-          console.error('Saved video file not found:', videoUri);
-          return;
-        }
-
-        console.log('Video saved to:', videoUri);
-        setVideoUri(null);
-        setTimeout(() => setVideoUri(videoUri), 100);
-      } catch (error) {
-        console.error('Error saving video:', error);
-      }
-    };
-
-    setWs(socket);
-  };
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [serverVideoUri, setServerVideoUri] = useState<string | null>(null);
+  const [loadingServerVideo, setLoadingServerVideo] = useState(false);
 
   const pickVideo = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -59,49 +29,90 @@ const Pest = () => {
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
       setVideoUri(result.assets[0].uri);
+      setServerVideoUri(null);
     }
   };
 
   const uploadVideo = async () => {
-    if (!videoUri || !ws) return;
-    if (ws.readyState !== WebSocket.OPEN) {
-      console.log('WebSocket not open yet');
+    if (!videoUri) {
+      Alert.alert('NO VIDEO SELECTED', 'Please select a video first.');
       return;
     }
-    setVideoVisible(false);
+
+    setUploading(true);
+    setUploadProgress(0);
 
     try {
       const response = await fetch(videoUri);
-      const videoBlob = await response.blob();
-      const reader = new FileReader();
+      const blob = await response.blob();
 
-      reader.onloadend = () => {
-        const arrayBuffer = reader.result as ArrayBuffer;
-        const byteArray = new Uint8Array(arrayBuffer);
-        const hexString = Array.from(byteArray)
-          .map(byte => byte.toString(16).padStart(2, '0'))
-          .join('');
+      const storageRef = ref(storage, `APP${new Date().toISOString().replace(/\D/g, '')}.mp4`);
 
-        const message = `VIDEO:${hexString}`;
-        ws.send(message);
-        console.log('Video sent to server as hex string');
-      };
+      const uploadTask = uploadBytesResumable(storageRef, blob);
 
-      reader.onerror = (error) => console.error('FileReader error: ', error);
-      reader.readAsArrayBuffer(videoBlob);
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.error(error);
+          Alert.alert('ERROR', 'Failed to upload video.');
+          setUploading(false);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            console.log('Video available at:', downloadURL);
+            setUploading(false);
+            setUploadProgress(0);
+            checkForServerVideo();
+          });
+        }
+      );
     } catch (error) {
-      console.error('Error uploading video:', error);
+      console.error(error);
+      Alert.alert('ERROR', 'Failed to upload video.');
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
-  useEffect(() => {
-    initWebSocket();
-    return () => {
-      if (ws) {
-        ws.close();
+  const checkForServerVideo = async () => {
+    setLoadingServerVideo(true);
+
+    const checkInterval = 5000;
+
+    const fetchServerVideo = async () => {
+      try {
+        const storageRef = ref(storage, '/');
+        const result = await listAll(storageRef);
+
+        const serverVideo = result.items.find((item) => item.name.startsWith('SERVER'));
+
+        if (serverVideo) {
+          const downloadURL = await getDownloadURL(serverVideo);
+          setServerVideoUri(downloadURL);
+          setVideoUri(null);
+
+          await deleteObject(serverVideo);
+          console.log('SERVER video deleted successfully.');
+
+          setLoadingServerVideo(false);
+          return;
+        }
+
+        console.log('No SERVER video found, retrying...');
+        setTimeout(fetchServerVideo, checkInterval);
+      } catch (error) {
+        console.error(error);
+        Alert.alert('Error', 'Failed to check for SERVER video.');
+        setLoadingServerVideo(false);
       }
     };
-  }, []);
+
+    fetchServerVideo();
+  };
 
   return (
     <ImageBackground
@@ -111,30 +122,38 @@ const Pest = () => {
       <View style={styles.container}>
         <Text style={styles.title}>Pest Detection</Text>
 
-        {!videoUri && (
+        {!videoUri && !serverVideoUri && (
           <TouchableOpacity style={styles.customButton} onPress={pickVideo}>
             <Text style={styles.customButtonText}>Select Video</Text>
           </TouchableOpacity>
         )}
 
-        {videoUri && (
+        {(videoUri || serverVideoUri) && !uploading && !loadingServerVideo && (
           <>
-            {videoVisible && (
-              <View style={styles.videoContainer}>
-                <Video
-                  source={{ uri: videoUri }}
-                  shouldPlay
-                  useNativeControls
-                  isLooping
-                  style={styles.video}
-                />
-              </View>
-            )}
+            <View style={styles.videoContainer}>
+              <Video
+                source={{ uri: videoUri || serverVideoUri || "" }}
+                shouldPlay
+                style={styles.video}
+                useNativeControls
+              />
+            </View>
 
-            <TouchableOpacity style={styles.customButton} onPress={uploadVideo}>
-              <Text style={styles.customButtonText}>Upload Video</Text>
-            </TouchableOpacity>
+            {!serverVideoUri && (
+              <TouchableOpacity style={styles.customButton} onPress={uploadVideo}>
+                <Text style={styles.customButtonText}>Upload Video</Text>
+              </TouchableOpacity>
+            )}
           </>
+        )}
+
+        {(uploading || loadingServerVideo) && (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#4CAF50" />
+            <Text style={styles.progressText}>
+              {uploading ? `Uploading: ${uploadProgress.toFixed(2)}%` : 'Checking for SERVER video...'}
+            </Text>
+          </View>
         )}
       </View>
     </ImageBackground>
@@ -171,7 +190,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
-    marginTop: 10,
   },
   customButtonText: {
     color: '#FFFFFF',
@@ -186,6 +204,15 @@ const styles = StyleSheet.create({
   video: {
     width: '100%',
     height: '100%',
+  },
+  loaderContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  progressText: {
+    marginTop: 10,
+    color: 'white',
+    fontSize: 16,
   },
 });
 
